@@ -52,8 +52,8 @@ class TestPositiveScripts:
             assert data[key] == response[key], f'Ожидается {data[key]}, фактически: {response[key]}'
         assert 'id' in response, 'Ожидается "id" в ответе'
         assert isinstance(response['id'], int), f'Значение "id" ожидается int, Фактически: {type(response["id"])}'
-        assert isinstance(response['lat'], float), f'Значение "id" ожидается int, Фактически: {type(response["lat"])}'
-        assert isinstance(response['lon'], float), f'Значение "id" ожидается int, Фактически: {type(response["lon"])}'
+        assert isinstance(response['lat'], float), f'Значение "id" ожидается float, Фактически: {type(response["lat"])}'
+        assert isinstance(response['lon'], float), f'Значение "id" ожидается float, Фактически: {type(response["lon"])}'
         assert 'created_at' in response, 'Ожидается "created_at" в ответе'
         assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
 
