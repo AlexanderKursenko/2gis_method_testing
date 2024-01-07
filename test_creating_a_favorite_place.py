@@ -1,11 +1,23 @@
-from getting_an_authorization_token import get_auth_token
-from current_datetime import current_datetime
-from big_title import BIG_TITLE, BIG_NEGATIVE_TITLE
+from datetime import datetime
 import requests
 import pytest
 
 
-URL = 'https://regions-test.2gis.com/v1/favorites'
+current_datetime = datetime.utcnow().replace(second=0, microsecond=0).isoformat()[:-3]
+BIG_TITLE = '1' * 999
+BIG_NEGATIVE_TITLE = 'a' * 1000
+BaseURL = 'https://regions-test.2gis.com/'
+
+
+def get_auth_token():
+    session = requests.Session().post(BaseURL + 'v1/auth/tokens')
+    return session.cookies.get_dict()
+
+
+def create_fav(request_body):
+    auth_token = get_auth_token()
+    res = requests.post(BaseURL + 'v1/favorites', cookies=auth_token, data=request_body)
+    return res.status_code, res.content.decode()
 
 
 class TestPositiveScripts:
@@ -46,10 +58,8 @@ class TestPositiveScripts:
     )
     # Смоук-тест на валидных данных:
     def test_smoke_create_fav_place(self, data, status_code):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response = eval(favorite_place.content.decode())
-        actual_status_code = favorite_place.status_code
+        status_code, response_str = create_fav(data)
+        response = eval(response_str)
 
         for key in data:
             assert key in response, f'Ключ {key} отсутствует в ответе'
@@ -59,7 +69,7 @@ class TestPositiveScripts:
         assert isinstance(response['lat'], float), f'Значение "id" ожидается float, Фактически: {type(response["lat"])}'
         assert isinstance(response['lon'], float), f'Значение "id" ожидается float, Фактически: {type(response["lon"])}'
         assert 'created_at' in response, 'Ожидается "created_at" в ответе'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 200, f'Ожидался статус-код 200, фактически: {status_code}'
 
 
     @pytest.mark.parametrize(
@@ -91,13 +101,11 @@ class TestPositiveScripts:
         ids=["set1: title-int", "set2: title-float", "set3: title-bool"]
     )
     def test_title_types(self, data, status_code):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response = eval(favorite_place.content.decode())
-        actual_status_code = favorite_place.status_code
+        status_code, response_str = create_fav(data)
+        response = eval(response_str)
 
         assert isinstance(response['title'], str), f'Значение "id" ожидается str, Фактически: {type(response["title"])}'
-        assert actual_status_code == 200, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 200, f'Ожидался статус-код 200, фактически: {status_code}'
 
 
 
@@ -174,10 +182,8 @@ class TestPositiveScripts:
              "set8: lat-7 characters after the period", "set9: lon-7 characters after the period"]
     )
     def test_lat_lon(self, data, status_code):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response = eval(favorite_place.content.decode())
-        actual_status_code = favorite_place.status_code
+        status_code, response_str = create_fav(data)
+        response = eval(response_str)
 
         for key in data:
             if data['lat'] == 0.0000001:
@@ -188,7 +194,7 @@ class TestPositiveScripts:
                 continue
             assert key in response, f'Ключ {key} отсутствует в ответе'
             assert data[key] == response[key], f'Ожидается {data[key]}, фактически: {response[key]}'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 200, f'Ожидался статус-код 200, фактически: {status_code}'
 
 
     @pytest.mark.parametrize(
@@ -220,14 +226,12 @@ class TestPositiveScripts:
         ids=["set1: lat-str", "set2: lon-str", "set3: lat, lon - int"]
     )
     def test_lat_lon_types(self, data, status_code):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response = eval(favorite_place.content.decode())
-        actual_status_code = favorite_place.status_code
+        status_code, response_str = create_fav(data)
+        response = eval(response_str)
 
         assert isinstance(response['lat'], float), f'Значение "id" ожидается float, Фактически: {type(response["lat"])}'
         assert isinstance(response['lon'], float), f'Значение "id" ожидается float, Фактически: {type(response["lon"])}'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 200, f'Ожидался статус-код 200, фактически: {status_code}'
 
 
     def test_colors(self):
@@ -241,21 +245,16 @@ class TestPositiveScripts:
         #Подставляем валидные цвета в словарь и проверяем ответ от сервера:
         for color in colors:
             data['color'] = color
-            cookies = get_auth_token()
-            favorite_place = requests.post(URL, cookies=cookies, data=data)
-            response = eval(favorite_place.content.decode())
-            actual_status_code = favorite_place.status_code
+            status_code, response_str = create_fav(data)
+            response = eval(response_str)
             assert response['color'] == data['color'], f'Ожидается {data["color"]}, фактически: {response["color"]}'
-            assert actual_status_code == 200, f'Ожидался статус-код {200}, фактически: {actual_status_code}'
+            assert status_code == 200, f'Ожидался статус-код 200, фактически: {status_code}'
 
         #Удаляем цвет из словаря и отправляем на сервер
         del data['color']
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response = favorite_place.content.decode()
-        actual_status_code = favorite_place.status_code
-        assert '"color": null' in response, f'Ожидается "color": null, фактически: {response[-57:-44]}'
-        assert actual_status_code == 200, f'Ожидался статус-код {200}, фактически: {actual_status_code}'
+        status_code, response_str = create_fav(data)
+        assert '"color": null' in response_str, f'Ожидается "color": null, фактически: {response_str[-57:-44]}'
+        assert status_code == 200, f'Ожидался статус-код 200, фактически: {status_code}'
 
 
     @pytest.mark.parametrize(
@@ -272,17 +271,15 @@ class TestPositiveScripts:
     )
     #Проверяем корректность даты и времени в ответе от сервера на валидных данных:
     def test_creation_datetime(self, data, status_code):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response = eval(favorite_place.content.decode())
-        actual_status_code = favorite_place.status_code
+        status_code, response_str = create_fav(data)
+        response = eval(response_str)
         actual_datetime = response['created_at'][:16]
         actual_timezone = response['created_at'][19:]
 
         assert actual_datetime == current_datetime, f'Ожидается дата и время создания: {current_datetime}' \
                                                     f', фактически: {actual_datetime}'
         assert actual_timezone == '+00:00', f'Ожидается таймзона +00:00, фактически: {actual_timezone}'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 200, f'Ожидался статус-код 200, фактически: {status_code}'
 
     @pytest.mark.parametrize(
         "data, status_code",
@@ -321,11 +318,8 @@ class TestPositiveScripts:
     )
     #Проверка удаления лишних пробелов:
     def test_data_strips(self, request, data, status_code):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response_str = favorite_place.content.decode()
+        status_code, response_str = create_fav(data)
         response = eval(response_str)
-        actual_status_code = favorite_place.status_code
 
         if 'set1' in request.node.keywords:
             removed_spaces = data['title'].strip()
@@ -346,7 +340,7 @@ class TestPositiveScripts:
                 removed_spaces = data['color'].strip()
                 response_spaces = response['color']
                 assert removed_spaces == response_spaces, f"Ожидание: '{removed_spaces}', Реальность: '{response_spaces}'"
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == status_code, f'Ожидался статус-код 200, фактически: {status_code}'
 
 
 class TestNegativeScripts:
@@ -375,17 +369,16 @@ class TestNegativeScripts:
     )
     #Проверяем отправку валидных данных без токена и с протухшим токеном
     def test_send_invalid_token(self, data, status_code, message, cookies):
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
+        favorite_place = requests.post(BaseURL + 'v1/favorites', cookies=cookies, data=data)
         response_str = favorite_place.content.decode()
         response = eval(response_str)
-        actual_status_code = favorite_place.status_code
 
         if 'error' in response_str:
             error_message = response['error']['message']
             assert error_message == message, f'Ожидается: {message}, фактически: {error_message}'
         else:
             assert 'error' in response_str, f'Ожидается сообщение об ошибке "{message}", фактически: {response}'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 401, f'Ожидался статус-код 401, фактически: {status_code}'
 
 
     @pytest.mark.parametrize(
@@ -426,18 +419,15 @@ class TestNegativeScripts:
         ids=["set1: blank title", "set2: 1000 characters", "set3: unacceptable symbols", "set4: Chinese character"]
     )
     def test_negative_title(self, data, status_code, message):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response_str = favorite_place.content.decode()
+        status_code, response_str = create_fav(data)
         response = eval(response_str)
-        actual_status_code = favorite_place.status_code
 
         if 'error' in response_str:
             error_message = response['error']['message']
             assert error_message == message, f'Ожидается: {message}, фактически: {error_message}'
         else:
             assert 'error' in response_str, f'Ожидается сообщение об ошибке "{message}", фактически: {response}'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 400, f'Ожидался статус-код 400, фактически: {status_code}'
 
 
     @pytest.mark.parametrize(
@@ -491,18 +481,15 @@ class TestNegativeScripts:
              "set6: lon < -180"]
     )
     def test_negative_lat_lon(self, data, status_code, message):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response_str = favorite_place.content.decode()
+        status_code, response_str = create_fav(data)
         response = eval(response_str)
-        actual_status_code = favorite_place.status_code
 
         if 'error' in response_str:
             error_message = response['error']['message']
             assert error_message == message, f'Ожидается: {message}, фактически: {error_message}'
         else:
             assert 'error' in response_str, f'Ожидается сообщение об ошибке "{message}", фактически: {response}'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 400, f'Ожидался статус-код 400, фактически: {status_code}'
 
 
     @pytest.mark.parametrize(
@@ -545,15 +532,12 @@ class TestNegativeScripts:
         ids=["set1: color='WHITE'", "set2: color-int", "set3: color - not uppercase letters", "set4: color='Text'"]
     )
     def test_negative_colors(self, data, status_code, message):
-        cookies = get_auth_token()
-        favorite_place = requests.post(URL, cookies=cookies, data=data)
-        response_str = favorite_place.content.decode()
+        status_code, response_str = create_fav(data)
         response = eval(response_str)
-        actual_status_code = favorite_place.status_code
 
         if 'error' in response_str:
             error_message = response['error']['message']
             assert error_message == message, f'Ожидается: {message}, фактически: {error_message}'
         else:
             assert 'error' in response_str, f'Ожидается сообщение об ошибке "{message}", фактически: {response}'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert status_code == 400, f'Ожидался статус-код 400, фактически: {status_code}'
