@@ -1,2 +1,0 @@
-BIG_TITLE = '1' * 999
-BIG_NEGATIVE_TITLE = 'a' * 1000
