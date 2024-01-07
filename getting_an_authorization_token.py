@@ -1,7 +1,7 @@
 import requests
 
 
-def getting_an_authorization_token():
+def get_auth_token():
     token_request = requests.post('https://regions-test.2gis.com/v1/auth/tokens')
     assert token_request.status_code == 200, print('ошибка запроса, статус-код:', token_request.status_code)
 

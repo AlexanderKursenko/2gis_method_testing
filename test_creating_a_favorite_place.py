@@ -1,4 +1,4 @@
-from getting_an_authorization_token import getting_an_authorization_token
+from getting_an_authorization_token import get_auth_token
 from current_datetime import current_datetime
 from big_title import BIG_TITLE, BIG_NEGATIVE_TITLE
 import requests
@@ -40,9 +40,13 @@ class TestPositiveScripts:
                     'lon': 1,
                     'color': 'YELLOW'
                 }, 200, marks=pytest.mark.set4)
-        ])
-    def test_smoke_creating_a_favorite_place(self, data, status_code):
-        cookies = getting_an_authorization_token()
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1", "set2", "set3", "set4"]
+    )
+    # Смоук-тест на валидных данных:
+    def test_smoke_create_fav_place(self, data, status_code):
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response = eval(favorite_place.content.decode())
         actual_status_code = favorite_place.status_code
@@ -82,15 +86,19 @@ class TestPositiveScripts:
                     'lon': 60.649108,
                     'color': 'GREEN'
                 }, 200, marks=pytest.mark.set3)
-        ])
-    def test_check_title_types(self, data, status_code):
-        cookies = getting_an_authorization_token()
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1: title-int", "set2: title-float", "set3: title-bool"]
+    )
+    def test_title_types(self, data, status_code):
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response = eval(favorite_place.content.decode())
         actual_status_code = favorite_place.status_code
 
         assert isinstance(response['title'], str), f'Значение "id" ожидается str, Фактически: {type(response["title"])}'
-        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+        assert actual_status_code == 200, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+
 
 
     @pytest.mark.parametrize(
@@ -159,9 +167,14 @@ class TestPositiveScripts:
                     'lon': 0.0000001,
                     'color': 'YELLOW'
                  }, 200, marks=pytest.mark.set9)
-        ])
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1: lat, lon = 0.000001", "set2: lat=90, lon=180", "set3: lat=-90, lon=-180", "set4: lat, lon = 0",
+             "set5: lat, lon = -0", "set6: lat=0.000001, lon=0", "set7: lat=0, lon=0.000001",
+             "set8: lat-7 characters after the period", "set9: lon-7 characters after the period"]
+    )
     def test_lat_lon(self, data, status_code):
-        cookies = getting_an_authorization_token()
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response = eval(favorite_place.content.decode())
         actual_status_code = favorite_place.status_code
@@ -202,9 +215,12 @@ class TestPositiveScripts:
                     'lon': 60,
                     'color': 'YELLOW'
                 }, 200, marks=pytest.mark.set3)
-        ])
-    def test_check_lat_lon_types(self, data, status_code):
-        cookies = getting_an_authorization_token()
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1: lat-str", "set2: lon-str", "set3: lat, lon - int"]
+    )
+    def test_lat_lon_types(self, data, status_code):
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response = eval(favorite_place.content.decode())
         actual_status_code = favorite_place.status_code
@@ -215,23 +231,26 @@ class TestPositiveScripts:
 
 
     def test_colors(self):
+        #Кортеж валидных цветов:
         colors = ('BLUE', 'GREEN', 'RED', 'YELLOW')
         data = {'title': 'Валидное Название',
                 'lat': 55.028254,
                 'lon': 82.918501,
                 'color': None}
 
+        #Подставляем валидные цвета в словарь и проверяем ответ от сервера:
         for color in colors:
             data['color'] = color
-            cookies = getting_an_authorization_token()
+            cookies = get_auth_token()
             favorite_place = requests.post(URL, cookies=cookies, data=data)
             response = eval(favorite_place.content.decode())
             actual_status_code = favorite_place.status_code
             assert response['color'] == data['color'], f'Ожидается {data["color"]}, фактически: {response["color"]}'
             assert actual_status_code == 200, f'Ожидался статус-код {200}, фактически: {actual_status_code}'
 
+        #Удаляем цвет из словаря и отправляем на сервер
         del data['color']
-        cookies = getting_an_authorization_token()
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response = favorite_place.content.decode()
         actual_status_code = favorite_place.status_code
@@ -248,9 +267,12 @@ class TestPositiveScripts:
                 'lon': 82.918501,
                 'color': 'RED'
              }, 200)
-        ])
-    def test_check_creation_datetime(self, data, status_code):
-        cookies = getting_an_authorization_token()
+        ],
+        ids=["Valid data"]
+    )
+    #Проверяем корректность даты и времени в ответе от сервера на валидных данных:
+    def test_creation_datetime(self, data, status_code):
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response = eval(favorite_place.content.decode())
         actual_status_code = favorite_place.status_code
@@ -260,6 +282,70 @@ class TestPositiveScripts:
         assert actual_datetime == current_datetime, f'Ожидается дата и время создания: {current_datetime}' \
                                                     f', фактически: {actual_datetime}'
         assert actual_timezone == '+00:00', f'Ожидается таймзона +00:00, фактически: {actual_timezone}'
+        assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
+
+    @pytest.mark.parametrize(
+        "data, status_code",
+        [
+            pytest.param(
+                {
+                    'title': ' Valid ',
+                    'lat': 55.028254,
+                    'lon': 82.918501,
+                    'color': 'BLUE'
+                }, 200, marks=pytest.mark.set1),
+            pytest.param(
+                {
+                    'title': 'Valid',
+                    'lat': ' 89.999999 ',
+                    'lon': 179.999999,
+                    'color': 'GREEN'
+                }, 200, marks=pytest.mark.set2),
+            pytest.param(
+                {
+                    'title': 'Валидный тайтл',
+                    'lat': 90,
+                    'lon': ' -180 ',
+                    'color': 'RED'
+                }, 200, marks=pytest.mark.set3),
+            pytest.param(
+                {
+                    'title': 'Valid',
+                    'lat': 1,
+                    'lon': 1,
+                    'color': ' YELLOW '
+                }, 200, marks=pytest.mark.set4)
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1: title = ' Valid '", "set2: lat = ' 89.999999 '", "set3: lon = ' -180 '", "set4: color = ' YELLOW '"]
+    )
+    #Проверка удаления лишних пробелов:
+    def test_data_strips(self, request, data, status_code):
+        cookies = get_auth_token()
+        favorite_place = requests.post(URL, cookies=cookies, data=data)
+        response_str = favorite_place.content.decode()
+        response = eval(response_str)
+        actual_status_code = favorite_place.status_code
+
+        if 'set1' in request.node.keywords:
+            removed_spaces = data['title'].strip()
+            response_spaces = response['title']
+            assert removed_spaces == response_spaces, f"Ожидание: '{removed_spaces}', Реальность: '{response_spaces}'"
+        if 'set2' in request.node.keywords:
+            removed_spaces = float(data['lat'])
+            response_spaces = response['lat']
+            assert removed_spaces == response_spaces, f"Ожидание: '{removed_spaces}', Реальность: '{response_spaces}'"
+        if 'set3' in request.node.keywords:
+            removed_spaces = float(data['lon'])
+            response_spaces = response['lon']
+            assert removed_spaces == response_spaces, f"Ожидание: '{removed_spaces}', Реальность: '{response_spaces}'"
+        if 'set4' in request.node.keywords:
+            if '"color": "YELLOW"' not in response_str:
+                assert False, f"Ожидается ключ 'color' в ответе, Фактически: {response}"
+            else:
+                removed_spaces = data['color'].strip()
+                response_spaces = response['color']
+                assert removed_spaces == response_spaces, f"Ожидание: '{removed_spaces}', Реальность: '{response_spaces}'"
         assert actual_status_code == status_code, f'Ожидался статус-код {status_code}, фактически: {actual_status_code}'
 
 
@@ -283,8 +369,12 @@ class TestNegativeScripts:
                 }, 401, "Передан несуществующий или «протухший» 'token'", {'token': '49e61919622d4c7db3d447f12cec95ea'},
                 marks=pytest.mark.set2)
 
-        ])
-    def test_sending_an_invalid_token(self, data, status_code, message, cookies):
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1: without token", "set2: invalid token"]
+    )
+    #Проверяем отправку валидных данных без токена и с протухшим токеном
+    def test_send_invalid_token(self, data, status_code, message, cookies):
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response_str = favorite_place.content.decode()
         response = eval(response_str)
@@ -322,10 +412,21 @@ class TestNegativeScripts:
                     'lon': 82.918501,
                     'color': 'BLUE'
                 }, 400, "Параметр 'title'  Может содержать латинские и кириллические символы, цифры и знаки препинания",
-                marks=pytest.mark.set3)
-        ])
+                marks=pytest.mark.set3),
+            pytest.param(
+                {
+                    'title': '峠',
+                    'lat': 55.028254,
+                    'lon': 82.918501,
+                    'color': 'BLUE'
+                }, 400, "Параметр 'title'  Может содержать латинские и кириллические символы, цифры и знаки препинания",
+                marks=pytest.mark.set4)
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1: blank title", "set2: 1000 characters", "set3: unacceptable symbols", "set4: Chinese character"]
+    )
     def test_negative_title(self, data, status_code, message):
-        cookies = getting_an_authorization_token()
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response_str = favorite_place.content.decode()
         response = eval(response_str)
@@ -384,9 +485,13 @@ class TestNegativeScripts:
                     'lon': -180.000001,
                     'color': 'YELLOW'
                  }, 400, "Параметр 'lon' должен быть не менее -180", marks=pytest.mark.set6)
-        ])
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1: lat-'a'", "set2: lon-'a'", "set3: lat > 90", "set4: lon > 180", "set5: lat < -90",
+             "set6: lon < -180"]
+    )
     def test_negative_lat_lon(self, data, status_code, message):
-        cookies = getting_an_authorization_token()
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response_str = favorite_place.content.decode()
         response = eval(response_str)
@@ -435,9 +540,12 @@ class TestNegativeScripts:
                     'color': 'Text'
                 }, 400, "Параметр 'color' может быть одним из следующих значений: BLUE, GREEN, RED, YELLOW",
                 marks=pytest.mark.set4)
-        ])
+        ],
+        # Идентификаторы для каждого набора тестовых данных:
+        ids=["set1: color='WHITE'", "set2: color-int", "set3: color - not uppercase letters", "set4: color='Text'"]
+    )
     def test_negative_colors(self, data, status_code, message):
-        cookies = getting_an_authorization_token()
+        cookies = get_auth_token()
         favorite_place = requests.post(URL, cookies=cookies, data=data)
         response_str = favorite_place.content.decode()
         response = eval(response_str)
